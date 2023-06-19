@@ -895,6 +895,9 @@ class sianet(nn.Module):
 
     @staticmethod
     def weight_init(m):
+        # (hr) 객체 m이 GridAttention 클래스의 인스턴스일 경우 가중치 초기화를 수행하지 않고,
+        #      nn.Conv3d, nn.Conv2d, nn.ConvTranspose3d, nn.ConvTranspose2d 중 하나일 경우,
+        #      가중치 초기화를 수행함.
         if isinstance(m, GridAttention):
             return
         if isinstance(m, (nn.Conv3d, nn.Conv2d, nn.ConvTranspose3d, nn.ConvTranspose2d)):
