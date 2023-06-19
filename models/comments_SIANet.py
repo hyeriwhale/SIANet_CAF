@@ -926,8 +926,8 @@ class sianet(nn.Module):
         xs = x.shape;
 
         ## (hr) crop 하는 부분
-        # x = x[:,:,:,105:147, 105:147]
-        # x = torch.reshape(x,(xs[0],1,xs[1],42,42));
+        x = x[:,:,:,105:147, 105:147]
+        x = torch.reshape(x,(xs[0],1,xs[1],42,42));
         ## 
 
         x = self.lka(x)  # (hr) Large Kernel Spatiotemporal Attention
