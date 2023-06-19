@@ -127,6 +127,7 @@ class Bottleneck(nn.Module):
 
 
 class Learnable_Filter(nn.Module):
+    # (hr) Spatiotemporal Refinement Module
     """Refinement module of MagNet
     Args:
         n_classes (int): no. classes
@@ -194,6 +195,7 @@ class LKA(nn.Module):
 
 
 class Attention(nn.Module):
+    # (hr) Large Kernel Spatiotemporal Attention
     def __init__(self, d_model=1, d_model2=64):
         super().__init__()
 
@@ -928,10 +930,11 @@ class sianet(nn.Module):
         # x = torch.reshape(x,(xs[0],1,xs[1],42,42));
         ## 
 
-        x = self.lka(x)
-        x = self.filter(x)
+        x = self.lka(x)  # (hr) Large Kernel Spatiotemporal Attention
+        x = self.filter(x)  # (hr) Spatiotemporal Refinement Module
 
         x = self.up(x)
+            # (hr) self.up = nn.Upsample(size=(32,252,252), mode='trilinear')
 
         return x
 
