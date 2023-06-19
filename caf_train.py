@@ -37,7 +37,7 @@ from models.unet_lightning import UNet_Lightning as UNetModel
 from utils.data_utils import load_config
 from utils.data_utils import get_cuda_memory_usage
 from utils.data_utils import tensor_to_submission_file
-from utils.w4c_dataloader import RainData
+from utils.caf_dataloader import GK2A
 
 class DataModule(pl.LightningDataModule):
     """ Class to handle training/validation splits in a single object
@@ -47,28 +47,35 @@ class DataModule(pl.LightningDataModule):
         self.params = params     
         self.training_params = training_params
         if mode in ['train']:
-            print("Loading TRAINING/VALIDATION dataset -- as test")
-            self.train_ds = RainData('training', **self.params)
-            self.val_ds = RainData('validation', **self.params)
+            print("Loading TRAINING/VALIDATION dataset")
+            self.train_ds = GK2A(data_root='/scratch/q593a18/workspace/PROJECTS/caf/output/gk2a_2020_20len_30min_org_CLD_IR105_WV063.npy', 
+                                 resize_width=128,
+                                 is_train=True)
+            self.val_ds = GK2A(data_root='/scratch/q593a18/workspace/PROJECTS/caf/output/gk2a_2021_20len_30min_org_CLD_IR105_WV063.npy', 
+                               resize_width=128,
+                               is_train=False)
             print(f"Training dataset size: {len(self.train_ds)}")
         if mode in ['val']:
-            print("Loading VALIDATION dataset -- as test")
-            self.val_ds = RainData('validation', **self.params)  
+            print("Loading VALIDATION dataset")
+            self.val_ds = GK2A(data_root='/scratch/q593a18/workspace/PROJECTS/caf/output/gk2a_2021_20len_30min_org_CLD_IR105_WV063.npy', 
+                               resize_width=128,
+                               is_train=False) 
         if mode in ['predict']:    
-            print("Loading PREDICTION/TEST dataset -- as test")
-            self.test_ds = RainData('test', **self.params)
-        if mode in ['heldout']:    
-            print("Loading HELD-OUT dataset -- as test")
-            self.test_ds = RainData('heldout', **self.params)   
+            print("Loading TEST dataset")
+            self.test_ds = GK2A(data_root='/path/to/test/dataset', 
+                               resize_width=128,
+                               is_train=False)
 
     def __load_dataloader(self, dataset, shuffle=True, pin=True):
-        # (hr) 일반적으로, dataloader에서 pin_memory=True, num_workers=gpu개수*4로 설정하면 좋다고 조은빈님이 가르쳐줬었음
+        # (hr) 일반적으로, dataloader에서 pin_memory=True (-> gpu ram에 데이터를 더 빨리 올릴 수 있음), 
+        #      num_workers=gpu개수*4로 설정하면 좋다고 조은빈님이 가르쳐줬었음
         dl = DataLoader(dataset, 
                         batch_size=self.training_params['batch_size'],
                         num_workers=self.training_params['n_workers'],
                         shuffle=shuffle, 
                         pin_memory=pin, prefetch_factor=2,
-                        persistent_workers=False)
+                        persistent_workers=False,
+                        drop_last=True)
         return dl
     
     def train_dataloader(self):
@@ -199,7 +206,7 @@ def train(params, gpus, mode, checkpoint_path, model=UNetModel):
         do_test(trainer, model, data.val_dataloader()) 
 
 
-    if mode == 'predict' or mode == 'heldout':
+    if mode == 'predict':
     # ------------
     # PREDICT
     # ------------
@@ -211,7 +218,6 @@ def train(params, gpus, mode, checkpoint_path, model=UNetModel):
             print("EXITING... \"regions\" and \"regions to predict\" must indicate the same region name in your config file.")
         else:
             do_predict(trainer, model, params["predict"], data.test_dataloader())
-              # (hr) mode가 predict인지 heldout인지에 따라 test_dataloader()에 load 되어있는 데이터가 다름
     
     get_cuda_memory_usage(gpus)
 
@@ -250,6 +256,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
     """ examples of usage:
 
     1) train from scratch on one GPU
@@ -267,7 +274,4 @@ if __name__ == "__main__":
     5) generate predictions (plese note that this mode works only for one GPU)
     python train.py --gpus 1 --mode predict  --config_path config_baseline.yaml  --checkpoint "lightning_logs/PATH-TO-YOUR-MODEL-LOGS/checkpoints/YOUR-CHECKPOINT-FILENAME.ckpt"
 
-    6) generate predictions for the held-out dataset (plese note that this mode works only for one GPU)
-    python train.py --gpus 1 --mode heldout  --config_path config_baseline.yaml  --checkpoint "lightning_logs/PATH-TO-YOUR-MODEL-LOGS/checkpoints/YOUR-CHECKPOINT-FILENAME.ckpt"
-        # (hr) held-out dataset은 test set을 뜻함
     """
