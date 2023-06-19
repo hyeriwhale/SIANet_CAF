@@ -345,6 +345,7 @@ def upconv2(in_channels, out_channels, mode='transpose', planar=False, dim=3):
 def conv1(in_channels, out_channels, dim=3):
     """Returns a 1x1 or 1x1x1 convolution, depending on dim"""
     return get_conv(dim)(in_channels, out_channels, kernel_size=1)
+        # (hr) nn.Conv3d (컨볼루션 레이어 클래스) 반환. 
 
 
 def get_activation(activation):
@@ -882,6 +883,7 @@ class sianet(nn.Module):
 
         self.dropout = nn.Dropout3d(dropout_rate)
         self.apply(self.weight_init)
+            # (hr) apply() 메서드는 해당 Module의 모든 sub-module에 인수받은 함수를 적용시켜준다.
         self.up = nn.Upsample(size=(32,252,252), mode='trilinear')
         #
         self.filter = Learnable_Filter()
@@ -920,8 +922,11 @@ class sianet(nn.Module):
         x = torch.reshape(x,(xs[0],xs[1]*xs[2],1,xs[3],xs[4]));
         x = self.reduce_channels(x)
         xs = x.shape;
-        x = x[:,:,:,105:147, 105:147]
-        x = torch.reshape(x,(xs[0],1,xs[1],42,42));
+
+        ## (hr) crop 하는 부분
+        # x = x[:,:,:,105:147, 105:147]
+        # x = torch.reshape(x,(xs[0],1,xs[1],42,42));
+        ## 
 
         x = self.lka(x)
         x = self.filter(x)
