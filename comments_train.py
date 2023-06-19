@@ -112,6 +112,7 @@ def get_trainer(gpus,params):
         gpus = None
     elif len(gpus) > 1:
         parallel_training = 'ddp'
+            # (hr) ddp: distributed data parallel ..인 듯
 ##        ddpplugin = DDPPlugin(find_unused_parameters=True)
     print(f"====== process started on the following GPUs: {gpus} ======")
     date_time = datetime.datetime.now().strftime("%m%d-%H:%M")
@@ -137,8 +138,11 @@ def get_trainer(gpus,params):
                          gradient_clip_algorithm=params['model']['gradient_clip_algorithm'],
                          accelerator="gpu",
                          callbacks=callback_funcs,logger=tb_logger,
-                         profiler='simple',precision=params['experiment']['precision'],
+                         profiler='simple',
+                             # (hr) profiler: To profile individual steps during training and assist in identifying bottlenecks. Default: None.
+                         precision=params['experiment']['precision'],
                          strategy="ddp"
+                             # (hr) strategy: Supports different training strategies with aliases as well custom strategies. Default: "auto".
                         )
 
     return trainer
