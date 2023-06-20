@@ -134,9 +134,9 @@ class Learnable_Filter(nn.Module):
         use_bn (bool): use batch normalization on the input
     """
 
-    def __init__(self, n_classes=1):
+    def __init__(self, n_classes=3):
         super().__init__()
-        self.conv1 = nn.Conv3d(1, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv3d(n_classes, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm3d(64, momentum=0.01)
         self.conv2 = nn.Conv3d(64, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm3d(64, momentum=0.01)
@@ -147,7 +147,7 @@ class Learnable_Filter(nn.Module):
         #self.weight_mask_conv = self._make_layer(BasicBlock, 1, 64, 1)
 
         # Prediction head
-        self.seg_conv = nn.Conv3d(128, 1, kernel_size=1, stride=1, padding=0, bias=False)
+        self.seg_conv = nn.Conv3d(128, n_classes, kernel_size=1, stride=1, padding=0, bias=False)
 
     def _make_layer(self, block, inplanes, planes, blocks, stride=1):
         """Make residual block"""
@@ -196,7 +196,8 @@ class LKA(nn.Module):
 
 class Attention(nn.Module):
     # (hr) Large Kernel Spatiotemporal Attention
-    def __init__(self, d_model=1, d_model2=64):
+    def __init__(self, d_model=10*3, d_model2=64):
+            # (hr) d_model: time slot * class 갯수
         super().__init__()
 
         self.proj_1 = nn.Conv3d(d_model, d_model2, 1)
@@ -746,9 +747,9 @@ class DummyAttention(nn.Module):
 class sianet(nn.Module):
     def __init__(
             self,
-            in_channels: int = 11,  # (hr) config 파일을 통해 덮어쓰기 가능
-            out_channels: int = 10*1,  ## NEW: number of time slots to predict
-                # (hr) time slot * ch
+            in_channels: int = 5,  # (hr) config 파일을 통해 덮어쓰기 가능
+            out_channels: int = 10*3,  ## NEW: number of time slots to predict
+                # (hr) time slot * channel(=no. of classes)
             dropout_rate: float = 0.4,  # (hr) config 파일을 통해 덮어쓰기 가능
             n_blocks: int = 5,
             start_filts: int = 32,  # (hr) config 파일을 통해 덮어쓰기 가능
@@ -881,7 +882,7 @@ class sianet(nn.Module):
                 conv_mode=conv_mode,
             )
             self.up_convs.append(up_conv)
-        self.reduce_channels = conv1(outs*4, ## 4 = experiment / len_seq_in 
+        self.reduce_channels = conv1(start_filts*int(out_channels/3), ## 3 = class 갯수
                                      self.out_channels, dim=dim)
 
         self.dropout = nn.Dropout3d(dropout_rate)
@@ -921,21 +922,26 @@ class sianet(nn.Module):
             x = module(before_pool, x)
             i += 1
 
-        xs = x.shape;
-        x = torch.reshape(x,(xs[0],xs[1]*xs[2],1,xs[3],xs[4]));
+        xs = x.shape
+        x = torch.reshape(x,(xs[0],xs[1]*xs[2],1,xs[3],xs[4]))
         x = self.reduce_channels(x)
-        xs = x.shape;
 
-        ## (hr) crop 하는 부분
-        x = x[:,:,:,105:147, 105:147]
-        x = torch.reshape(x,(xs[0],1,xs[1],42,42));
-        ## 
-
+        ## (hr) crop 안 하는 버전
         x = self.lka(x)  # (hr) Large Kernel Spatiotemporal Attention
+        xs = x.shape
+        x = torch.reshape(x,(xs[0],3,10,xs[3],xs[4]))  # (batch, channel, time, h, w)
+        # print(x.shape)
         x = self.filter(x)  # (hr) Spatiotemporal Refinement Module
+        ##
 
-        x = self.up(x)
+        ## (hr) crop 하는 버전
+        # x = x[:,:,:,105:147, 105:147]
+        # x = torch.reshape(x,(xs[0],1,xs[1],42,42));
+        # x = self.lka(x)  # (hr) Large Kernel Spatiotemporal Attention
+        # x = self.filter(x)  # (hr) Spatiotemporal Refinement Module
+        # x = self.up(x)
             # (hr) self.up = nn.Upsample(size=(32,252,252), mode='trilinear')
+        ##
 
         return x
 
@@ -1041,11 +1047,21 @@ def test_planar_configs(max_n_blocks=4):
 
 
 if __name__ == '__main__':
-    # m = UNet3dLite()
-    # x = torch.randn(1, 1, 22, 140, 140)
-    # m(x)
-    test_2d_config()
-    print()
-    test_planar_configs()
+    inputs = torch.randn(3, 5, 10, 128, 128)  # (b, c, t, w, h)
+    # inputs = inputs[:, :, :10, ...]
+    print(f'inputs.shape: {inputs.shape}')
+    model = sianet()
+    output = model(inputs)
+    print(f'output.shape: {output.shape}')
     print('All tests sucessful!')
-    # # TODO: Also test valid convolution architecture.
+
+
+# if __name__ == '__main__':
+#     # m = UNet3dLite()
+#     # x = torch.randn(1, 1, 22, 140, 140)
+#     # m(x)
+#     test_2d_config()
+#     print()
+#     test_planar_configs()
+#     print('All tests sucessful!')
+#     # # TODO: Also test valid convolution architecture.
