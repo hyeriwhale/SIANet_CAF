@@ -4,7 +4,6 @@ import random
 import numpy as np
 import torch
 from skimage.transform import resize
-from torch.utils.data import DataLoader
 
 class GK2A(object):
     def __init__(self, data_root, resize_width, is_train):
@@ -40,42 +39,32 @@ class GK2A(object):
                 img_seq = np.stack(img_seq)
                 img_seq = torch.Tensor(img_seq)
 
-                # if ch_idx == 0:  ## CLD
-                #     img_seq = label_to_one_hot_label(img_seq, 3)
-                # elif ch_idx == 1:  ## IR
-                
-                if ch_idx == 1:  ## IR
+                if ch_idx == 0:  ## CLD
+                    img_seq = label_to_one_hot_label(img_seq, 3)
+                elif ch_idx == 1:  ## IR
                     img_seq = (img_seq - self.min_ir) / (self.max_ir - self.min_ir)
                     img_seq = torch.clamp(img_seq, 0, 1)  # 의미없는 값 제거
 
-                # if len(mul_ch_seq) > 1:
-                #     if ch_idx != 0:
-                #         img_seq = img_seq.unsqueeze(3)
-
-                
                 if len(mul_ch_seq) > 1:
-                    img_seq = img_seq.unsqueeze(3)
-                        
+                    if ch_idx != 0:
+                        img_seq = img_seq.unsqueeze(3)
+
                 if ch_idx == 0:
                     conc_img_seq = img_seq
                 else:
                     conc_img_seq = torch.cat([conc_img_seq, img_seq], dim = 3)
-            
-        # (t, h, w, c) -> (c, t, w, h)=(2, 20, 128, 128)
-        conc_img_seq = conc_img_seq.permute(3,0,2,1)
-        inputs, targets = conc_img_seq[:, :10, :, :], conc_img_seq[:1, 10:, :, :]
 
-        return inputs, targets  # (2, 10, 128, 128), (1, 10, 128, 128)
+        return conc_img_seq  # (length, h, w, c)
 
 
-# def label_to_one_hot_label(img_seq, num_classes):
-#     one_hot_seq = []
-#     for i in range(img_seq.shape[0]):
-#         one_hot_list = []
-#         for cls_num in range(num_classes):
-#             one_hot = torch.zeros_like(img_seq[i])
-#             one_hot = torch.where(img_seq[i] == cls_num, 1, 0)
-#             one_hot_list.append(one_hot.unsqueeze(2))
-#         one_hot_seq.append(torch.cat(one_hot_list, dim = 2))
+def label_to_one_hot_label(img_seq, num_classes):
+    one_hot_seq = []
+    for i in range(img_seq.shape[0]):
+        one_hot_list = []
+        for cls_num in range(num_classes):
+            one_hot = torch.zeros_like(img_seq[i])
+            one_hot = torch.where(img_seq[i] == cls_num, 1, 0)
+            one_hot_list.append(one_hot.unsqueeze(2))
+        one_hot_seq.append(torch.cat(one_hot_list, dim = 2))
 
-#     return torch.stack(one_hot_seq)
+    return torch.stack(one_hot_seq)
