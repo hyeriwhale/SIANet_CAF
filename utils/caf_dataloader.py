@@ -66,7 +66,7 @@ class GK2A(object):
         # inputs, targets = conc_img_seq[:, :10, :, :], conc_img_seq[:1, 10:, :, :]
         inputs, targets = conc_img_seq[:, :10, :, :], conc_img_seq[0, 10:, :, :]
 
-        return inputs, targets  # (2, 10, 128, 128), (1, 10, 128, 128)
+        return inputs, targets  # (2, 10, 128, 128), (10, 128, 128)
 
 
 # def label_to_one_hot_label(img_seq, num_classes):
