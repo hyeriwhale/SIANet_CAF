@@ -747,7 +747,7 @@ class DummyAttention(nn.Module):
 class sianet(nn.Module):
     def __init__(
             self,
-            in_channels: int = 5,  # (hr) config 파일을 통해 덮어쓰기 가능
+            in_channels: int = 2,  # (hr) config 파일을 통해 덮어쓰기 가능
             out_channels: int = 10*3,  ## NEW: number of time slots to predict
                 # (hr) time slot * channel(=no. of classes)
             dropout_rate: float = 0.4,  # (hr) config 파일을 통해 덮어쓰기 가능

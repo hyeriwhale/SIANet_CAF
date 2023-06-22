@@ -6,7 +6,7 @@ from torch.utils.data import random_split, DataLoader
 from utils.caf_dataloader import GK2A
 import numpy as np
 from models.caf_SIANet import sianet
-from utils import progress_bar
+from utils.utils import progress_bar
 import os
 
 train_dataset = GK2A(data_root='/scratch/q593a18/workspace/PROJECTS/caf/output/gk2a_2020_20len_30min_org_CLD_IR105_WV063.npy', 
@@ -14,7 +14,7 @@ train_dataset = GK2A(data_root='/scratch/q593a18/workspace/PROJECTS/caf/output/g
                                is_train=True)
 val_dataset = GK2A(data_root='/scratch/q593a18/workspace/PROJECTS/caf/output/gk2a_2021_20len_30min_org_CLD_IR105_WV063.npy', 
                                resize_width=128,
-                               is_train=True)
+                               is_train=False)
 
 train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, 
                           num_workers=16, pin_memory=True, prefetch_factor=2, 
@@ -62,7 +62,7 @@ def test(epoch):
             test_loss += loss.item()
 
             progress_bar(batch_idx, len(val_loader), 'Loss: %.3f |'
-                         % (test_loss/(batch_idx+1)))
+                        % (test_loss/(batch_idx+1)))
 
         state = {
             'net': model.state_dict(),
@@ -72,7 +72,7 @@ def test(epoch):
             os.mkdir('checkpoint')
         torch.save(state, './checkpoint/ckpt.pth')
 
-for epoch in range(0, 100):
+for epoch in range(0, 1):
     train(epoch)
     test(epoch)
     scheduler.step()

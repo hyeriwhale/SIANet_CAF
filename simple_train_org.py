@@ -42,7 +42,7 @@ def train(epoch):
         loss.backward()
         optimizer.step()
         
-         train_loss += loss.item()
+        train_loss += loss.item()
 
         progress_bar(batch_idx, len(train_loader), 'Loss: %.3f |' % (train_loss/(batch_idx+1)))
 
